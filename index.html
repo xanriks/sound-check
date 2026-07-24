@@ -44,10 +44,26 @@
 
       <label class="field">
         <span class="field__label">Room code</span>
-        <input id="input-code" class="field__input field__input--code" type="text" maxlength="5" placeholder="—————" autocomplete="off" spellcheck="false">
+        <div id="code-slots" class="code-slots">
+          <span class="code-slot"></span><span class="code-slot"></span><span class="code-slot"></span><span class="code-slot"></span>
+        </div>
+        <input id="input-code" type="hidden" value="">
       </label>
 
-      <button id="btn-join" class="btn btn--primary">Join room</button>
+      <div class="keypad">
+        <button type="button" class="key" data-key="1">1</button>
+        <button type="button" class="key" data-key="2">2</button>
+        <button type="button" class="key" data-key="3">3</button>
+        <button type="button" class="key" data-key="4">4</button>
+        <button type="button" class="key" data-key="5">5</button>
+        <button type="button" class="key" data-key="6">6</button>
+        <button type="button" class="key" data-key="7">7</button>
+        <button type="button" class="key" data-key="8">8</button>
+        <button type="button" class="key" data-key="9">9</button>
+        <button type="button" class="key key--muted" data-key="del">⌫</button>
+        <button type="button" class="key" data-key="0">0</button>
+        <button id="btn-join" type="button" class="key key--go">Join</button>
+      </div>
       <p class="rule"><span>or</span></p>
       <button id="btn-create" class="btn btn--ghost">Start a room as host</button>
       <p id="start-error" class="notice" hidden></p>

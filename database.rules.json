@@ -6,7 +6,7 @@
       "$code": {
         ".read": true,
         ".write": true,
-        ".validate": "$code.length === 5"
+        ".validate": "$code.length >= 4 && $code.length <= 5"
       }
     }
   }

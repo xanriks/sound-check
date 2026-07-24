@@ -428,3 +428,38 @@ body:has(#screen-present.is-active) #app{ max-width: 52rem; }
   border-radius:4px; padding:.05rem .3rem; color: var(--cream);
 }
 .notice b{ color: var(--cream); }
+
+/* ============================================================
+   NUMERIC CODE + KEYPAD
+   ============================================================ */
+.code-slots{
+  display:flex; gap:.6rem; justify-content:center; margin:.2rem 0 .3rem;
+}
+.code-slot{
+  flex:1 1 0; max-width:4rem; aspect-ratio:1/1;
+  display:grid; place-items:center;
+  background: var(--ink); border:1px solid #333b50; border-radius:11px;
+  font-family: var(--readout); font-size:1.9rem; color: var(--tungsten);
+}
+.code-slot.is-filled{ border-color: var(--tungsten); }
+
+.keypad{
+  display:grid; grid-template-columns: repeat(3, 1fr); gap:.55rem; margin-top:.5rem;
+}
+.key{
+  font-family: var(--readout); font-size:1.5rem; font-weight:500;
+  background: var(--raised); color: var(--cream);
+  border:1px solid #39425a; border-radius:12px;
+  padding:1rem 0; cursor:pointer;
+  -webkit-user-select:none; user-select:none;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+  transition: transform .08s ease, filter .12s ease;
+}
+.key:hover{ filter: brightness(1.12); }
+.key:active{ transform: translateY(1px); }
+.key:focus-visible{ outline:2px solid var(--tungsten); outline-offset:2px; }
+.key--muted{ background: transparent; color: var(--dim); font-size:1.3rem; }
+.key--go{
+  background: var(--tungsten); color: var(--ink); font-family: var(--body);
+  font-weight:700; font-size:1.05rem;
+}

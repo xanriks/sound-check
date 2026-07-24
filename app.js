@@ -11,7 +11,7 @@ import { loadSongs } from "./songs.js";
 const CLIP_SECONDS = [1, 2, 4, 7, 11, 16];   // the ladder
 const MAX_SECONDS  = 16;
 const BAR_COUNT    = 64;
-const CODE_CHARS   = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no O/0/I/1
+const CODE_LENGTH  = 4;   // numeric room code
 const POINTS       = [6, 5, 4, 3, 2, 1];     // by level solved at
 
 const decade = (y) => y ? `${Math.floor(y / 10) * 10}s` : null;
@@ -193,8 +193,8 @@ async function primeAudio() {
    ROOM LIFECYCLE
    ============================================================ */
 function makeCode() {
-  return Array.from({ length: 5 }, () =>
-    CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join("");
+  // 4-digit code, never starting with 0, so it always reads as 4 digits.
+  return String(Math.floor(1000 + Math.random() * 9000));
 }
 
 function shuffled(n) {
@@ -230,9 +230,9 @@ async function createRoom() {
 
 async function joinRoom() {
   myName = $("input-name").value.trim();
-  const code = $("input-code").value.trim().toUpperCase();
+  const code = $("input-code").value.trim();
   if (!myName) return fail("Enter your name first.");
-  if (code.length !== 5) return fail("Room codes are five characters.");
+  if (!/^\d{4}$/.test(code)) return fail("Room codes are 4 digits.");
 
   const snap = await get(ref(db, `rooms/${code}/meta`));
   if (!snap.exists()) return fail("No room with that code. Check with the host.");
@@ -774,7 +774,24 @@ function blockStart(msg) {
 
 on("btn-create", "click", createRoom);
 on("btn-join", "click", joinRoom);
-on("input-code", "input", (e) => e.target.value = e.target.value.toUpperCase());
+// Keypad drives the code field. Digits only, max 4.
+document.querySelectorAll("[data-key]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const el = $("input-code");
+    const k = btn.dataset.key;
+    if (k === "del") el.value = el.value.slice(0, -1);
+    else if (el.value.length < CODE_LENGTH) el.value += k;
+    renderKeypadDisplay();
+  });
+});
+function renderKeypadDisplay() {
+  const v = $("input-code").value;
+  const slots = $("code-slots");
+  if (slots) [...slots.children].forEach((s, i) => {
+    s.textContent = v[i] || "";
+    s.classList.toggle("is-filled", !!v[i]);
+  });
+}
 on("btn-copy-code", "click", () => navigator.clipboard.writeText(roomCode));
 on("btn-start-game", "click", startGame);
 on("btn-test-tracks", "click", testTracks);
@@ -829,8 +846,8 @@ on("btn-present-play", "click", async () => {
 });
 
 /* Presenter screens open with ?present=CODE and never join as a player. */
-const presentParam = (new URLSearchParams(location.search).get("present") || "").toUpperCase();
-if (presentParam.length === 5) {
+const presentParam = (new URLSearchParams(location.search).get("present") || "").trim();
+if (/^\d{4}$/.test(presentParam)) {
   presentMode = true;
   roomCode = presentParam;
   attach(false);

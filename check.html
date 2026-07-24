@@ -165,7 +165,7 @@ async function grab(path) {
       const db = rtdb.getDatabase(app.initializeApp(cfg));
       log("pass", "Database starts up", "No errors.");
 
-      const code = "ZZ" + Math.random().toString(36).slice(2, 5).toUpperCase();
+      const code = String(Math.floor(1000 + Math.random() * 9000));
       const probe = rtdb.ref(db, `rooms/${code}/meta`);
 
       const timeout = new Promise((_, reject) =>
