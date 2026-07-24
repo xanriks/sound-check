@@ -396,3 +396,10 @@ body:has(#screen-present.is-active) #app{ max-width: 52rem; }
   letter-spacing:.1em; color: var(--tungsten); margin-bottom:.6rem;
 }
 .pres__setlist:empty{ display:none; }
+
+.notice code{
+  font-family: var(--readout); font-size:.85em;
+  background: var(--ink); border:1px solid #2b3244;
+  border-radius:4px; padding:.05rem .3rem; color: var(--cream);
+}
+.notice b{ color: var(--cream); }

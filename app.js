@@ -3,7 +3,7 @@ import {
   getDatabase, ref, set, update, get, onValue, onDisconnect
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { firebaseConfig } from "./firebase-config.js";
-import { SONGS } from "./songs.js";
+import { loadSongs } from "./songs.js";
 
 /* ============================================================
    CONSTANTS
@@ -15,13 +15,19 @@ const CODE_CHARS   = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no O/0/I/1
 const POINTS       = [6, 5, 4, 3, 2, 1];     // by level solved at
 
 const decade = (y) => y ? `${Math.floor(y / 10) * 10}s` : null;
-const ERAS   = [...new Set(SONGS.map(s => decade(s.year)).filter(Boolean))].sort();
-const GENRES = [...new Set(SONGS.map(s => s.genre).filter(Boolean))].sort();
+
+/* Filled in by loadSongs() before the start screen unlocks. */
+let SONGS = [], ERAS = [], GENRES = [], songIssues = [];
 
 /* ============================================================
    STATE
    ============================================================ */
-const db = getDatabase(initializeApp(firebaseConfig));
+let db = null, initError = null;
+try {
+  db = getDatabase(initializeApp(firebaseConfig));
+} catch (err) {
+  initError = err;
+}
 
 let me = sessionStorage.getItem("sc-id");
 if (!me) { me = crypto.randomUUID(); sessionStorage.setItem("sc-id", me); }
@@ -203,7 +209,7 @@ function shuffled(n) {
 async function createRoom() {
   myName = $("input-name").value.trim();
   if (!myName) return fail("Enter your name first.");
-  if (!SONGS.length) return fail("songs.js is empty. Add tracks before hosting.");
+  if (!SONGS.length) return fail("No tracks loaded. Check songs.csv.");
 
   let code, exists = true, tries = 0;
   while (exists && tries++ < 8) {
@@ -675,7 +681,8 @@ async function nextTrack() {
 async function testTracks() {
   const log = $("test-results");
   show(log, true);
-  log.innerHTML = "<div>Checking tracks…</div>";
+  log.innerHTML = songIssues.map(i => `<div class="bad">SKIPPED ${escapeHtml(i)}</div>`).join("")
+    + `<div>Checking ${SONGS.length} tracks…</div>`;
   let bad = 0;
 
   for (const song of SONGS) {
@@ -698,6 +705,73 @@ async function testTracks() {
 /* ============================================================
    WIRING
    ============================================================ */
+/* ============================================================
+   STARTUP — read songs.csv before anything can be clicked
+   ============================================================ */
+function blockStart(msg) {
+  $("btn-create").disabled = true;
+  $("btn-join").disabled = true;
+  const el = $("start-error");
+  el.innerHTML = msg;
+  show(el, true);
+}
+
+(async function boot() {
+  $("btn-create").disabled = true;
+  $("btn-join").disabled = true;
+
+  /* --- the three things that actually stop people getting started --- */
+  if (location.protocol === "file:") {
+    return blockStart(
+      "This page was opened straight from your computer, so the browser is blocking " +
+      "part of it. Open it from your GitHub Pages address instead " +
+      "(<code>https://yourname.github.io/sound-check/</code>).");
+  }
+
+  const cfg = JSON.stringify(firebaseConfig || {});
+  if (!firebaseConfig || cfg.includes("PASTE")) {
+    return blockStart(
+      "<b>firebase-config.js still has the placeholder values in it.</b> " +
+      "Copy the config from Firebase → Project settings → Your apps, paste it in, " +
+      "and commit the change. See Part 3 of SETUP.md.");
+  }
+  if (!firebaseConfig.databaseURL) {
+    return blockStart(
+      "<b>Your Firebase config has no <code>databaseURL</code>.</b> That happens when the " +
+      "web app was registered before the Realtime Database existed. Copy the URL from the top " +
+      "of the database's Data tab and add it to firebase-config.js.");
+  }
+  if (initError) {
+    return blockStart("<b>Firebase wouldn't start up.</b> " + escapeHtml(initError.message));
+  }
+
+  /* --- can we actually reach the database? --- */
+  try {
+    await get(ref(db, ".info/serverTimeOffset"));
+  } catch (err) {
+    return blockStart(
+      "<b>Couldn't reach your database.</b> Usually this means the security rules were " +
+      "never published, or the database is Cloud Firestore rather than Realtime Database. " +
+      "See Part 1 of SETUP.md.<br><br>" + escapeHtml(err.message));
+  }
+
+  const { songs, issues } = await loadSongs();
+  SONGS = songs;
+  songIssues = issues;
+  ERAS   = [...new Set(SONGS.map(s => decade(s.year)).filter(Boolean))].sort();
+  GENRES = [...new Set(SONGS.map(s => s.genre).filter(Boolean))].sort();
+
+  $("btn-create").disabled = false;
+  $("btn-join").disabled = false;
+
+  if (issues.length) {
+    console.warn("[Sound Check] songs.csv:", ...issues);
+    const el = $("start-error");
+    el.textContent = `${SONGS.length} tracks loaded. ${issues.length} row(s) skipped — see "Test every track" in the lobby.`;
+    show(el, true);
+  }
+})();
+
 on("btn-create", "click", createRoom);
 on("btn-join", "click", joinRoom);
 on("input-code", "input", (e) => e.target.value = e.target.value.toUpperCase());
