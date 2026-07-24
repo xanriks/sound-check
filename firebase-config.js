@@ -10,11 +10,12 @@
    ============================================================ */
 
 export const firebaseConfig = {
-  apiKey: "PASTE",
-  authDomain: "PASTE.firebaseapp.com",
-  databaseURL: "https://PASTE-default-rtdb.firebaseio.com",
-  projectId: "PASTE",
-  storageBucket: "PASTE.appspot.com",
-  messagingSenderId: "PASTE",
-  appId: "PASTE"
+  apiKey: "AIzaSy...",
+  authDomain: "sound-check-1234.firebaseapp.com",
+  databaseURL: "https://sound-check-1234-default-rtdb.firebaseio.com",
+  projectId: "sound-check-1234",
+  storageBucket: "sound-check-1234.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123:web:abc"
 };
+
