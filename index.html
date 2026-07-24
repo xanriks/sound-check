@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sound Check — team music game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Karla:wght@400;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Hidden YouTube player. Must stay in the DOM and keep real dimensions or playback stalls. -->
+<div id="yt-cage"><div id="yt-player"></div></div>
+
+<main id="app">
+
+  <!-- ============ START ============ -->
+  <section class="screen is-active" id="screen-start">
+    <header class="brand">
+      <span class="brand__eyebrow">team music game</span>
+      <h1 class="brand__mark">SOUND<br>CHECK</h1>
+      <p class="brand__blurb">One second of a song. Then two. Then four. Name it before the bar runs out.</p>
+    </header>
+
+    <div class="panel">
+      <label class="field">
+        <span class="field__label">Your name</span>
+        <input id="input-name" class="field__input" type="text" maxlength="18" placeholder="Priya" autocomplete="off">
+      </label>
+
+      <label class="field">
+        <span class="field__label">Room code</span>
+        <input id="input-code" class="field__input field__input--code" type="text" maxlength="5" placeholder="—————" autocomplete="off" spellcheck="false">
+      </label>
+
+      <button id="btn-join" class="btn btn--primary">Join room</button>
+      <p class="rule"><span>or</span></p>
+      <button id="btn-create" class="btn btn--ghost">Start a room as host</button>
+      <p id="start-error" class="notice" hidden></p>
+    </div>
+  </section>
+
+  <!-- ============ LOBBY ============ -->
+  <section class="screen" id="screen-lobby">
+    <div class="readout">
+      <span class="readout__label">room code</span>
+      <span class="readout__value" id="lobby-code">—————</span>
+      <button id="btn-copy-code" class="btn btn--tiny">Copy</button>
+    </div>
+
+    <p class="lobby__hint">Paste the code and this page's link into the meeting chat. Everyone plays on their own laptop.</p>
+
+    <h2 class="section-title">In the room <span id="lobby-count" class="tally">0</span></h2>
+    <ul id="lobby-players" class="roster"></ul>
+
+    <h2 class="section-title">What are we listening to?</h2>
+    <p class="lobby__hint">Tap what you want to hear. Everyone votes, the host builds the set from it. Nothing tapped means anything goes.</p>
+    <div class="chips" id="chips-era"></div>
+    <div class="chips" id="chips-genre"></div>
+
+    <div id="lobby-host-tools" hidden>
+      <label class="field">
+        <span class="field__label">Tracks in the set</span>
+        <input id="input-length" class="field__input" type="number" min="3" max="40" value="10">
+      </label>
+      <button id="btn-build" class="btn btn--ghost">Build the set from the vote</button>
+      <p id="build-note" class="notice"></p>
+      <button id="btn-start-game" class="btn btn--primary">Start the game</button>
+      <button id="btn-present" class="btn btn--ghost">Open the screen to share</button>
+      <button id="btn-test-tracks" class="btn btn--ghost">Test every track first</button>
+      <div id="test-results" class="testlog" hidden></div>
+    </div>
+    <p id="lobby-wait" class="notice notice--quiet">Waiting for the host to start.</p>
+  </section>
+
+  <!-- ============ GAME ============ -->
+  <section class="screen" id="screen-game">
+    <div class="statusbar">
+      <span class="statusbar__slot" id="game-round">Track 1 of 1</span>
+      <span class="statusbar__slot statusbar__slot--right" id="game-score">0 pts</span>
+    </div>
+
+    <!-- SIGNATURE: the waveform doubles as the clip ladder and the playhead -->
+    <div class="deck">
+      <div id="wave" class="wave js-wave" role="img" aria-label="Clip length">
+        <div id="wave-bars" class="wave__bars"></div>
+        <div class="wave__playhead"></div>
+      </div>
+      <div class="ticks" id="ticks"></div>
+    </div>
+
+    <button id="btn-play" class="btn btn--play js-play">
+      <span class="btn__glyph" aria-hidden="true"></span>
+      <span id="play-label">Play 1s</span>
+    </button>
+    <p id="audio-gate" class="notice" hidden>Tap play once to switch on audio for the whole session.</p>
+    <p id="track-error" class="notice notice--bad" hidden></p>
+
+    <ol id="marks" class="marks"></ol>
+    <ul id="hints" class="hints"></ul>
+
+    <div id="guess-area">
+      <div class="combo">
+        <input id="input-guess" class="field__input" type="text" placeholder="Start typing a title or artist" autocomplete="off" spellcheck="false">
+        <ul id="suggestions" class="suggestions" hidden></ul>
+      </div>
+      <div class="btn-row">
+        <button id="btn-guess" class="btn btn--primary" disabled>Lock in guess</button>
+        <button id="btn-skip" class="btn btn--ghost">Skip</button>
+      </div>
+    </div>
+
+    <p id="guess-locked" class="notice notice--quiet" hidden></p>
+
+    <div id="reveal" class="reveal" hidden>
+      <span class="reveal__label">the track was</span>
+      <h2 class="reveal__title" id="reveal-title"></h2>
+      <p class="reveal__artist" id="reveal-artist"></p>
+    </div>
+
+    <div id="host-console" class="console" hidden>
+      <span class="console__label">host console</span>
+      <p class="console__answer" id="console-answer"></p>
+      <p class="console__tally" id="console-tally"></p>
+      <div class="btn-row">
+        <button id="btn-extend" class="btn btn--primary">Extend clip</button>
+        <button id="btn-reveal" class="btn btn--ghost">Reveal answer</button>
+        <button id="btn-next" class="btn btn--ghost" hidden>Next track</button>
+      </div>
+      <button id="btn-hint" class="btn btn--tiny" style="margin-top:.7rem">Drop a hint</button>
+      <button id="btn-present-2" class="btn btn--tiny" style="margin-top:.7rem">Open the screen to share</button>
+    </div>
+
+    <h2 class="section-title">Standings</h2>
+    <ol id="board" class="board"></ol>
+  </section>
+
+  <!-- ============ END ============ -->
+  <section class="screen" id="screen-end">
+    <header class="brand">
+      <span class="brand__eyebrow">that's the set</span>
+      <h1 class="brand__mark">FINAL<br>MIX</h1>
+    </header>
+    <ol id="board-final" class="board board--final"></ol>
+    <pre id="share-grid" class="grid"></pre>
+    <button id="btn-copy-grid" class="btn btn--primary">Copy my grid</button>
+    <p class="notice notice--quiet">Paste it in the meeting chat. It shows how you did without naming the tracks.</p>
+  </section>
+
+  <!-- ============ PRESENTER (shared screen — never shows the answer early) ============ -->
+  <section class="screen" id="screen-present">
+    <div class="pres__top">
+      <span class="pres__wordmark">SOUND CHECK</span>
+      <span class="pres__code" id="present-code">—————</span>
+    </div>
+
+    <h2 class="pres__stage" id="present-stage">Waiting to start</h2>
+
+    <div id="present-deck" class="deck" hidden>
+      <div class="wave wave--big js-wave">
+        <div id="present-bars" class="wave__bars"></div>
+        <div class="wave__playhead"></div>
+      </div>
+      <div class="ticks ticks--big" id="present-ticks"></div>
+    </div>
+
+    <p class="pres__setlist" id="present-setlist"></p>
+    <p class="pres__tally" id="present-tally"></p>
+    <ul id="present-hints" class="hints hints--big"></ul>
+
+    <button id="btn-present-play" class="btn btn--play js-play" hidden>
+      <span class="btn__glyph" aria-hidden="true"></span>
+      <span id="present-play-label">Play out loud</span>
+    </button>
+
+    <div id="present-reveal" class="reveal reveal--big" hidden>
+      <span class="reveal__label">the track was</span>
+      <h2 class="reveal__title" id="present-title"></h2>
+      <p class="reveal__artist" id="present-artist"></p>
+    </div>
+
+    <h2 class="section-title">Standings</h2>
+    <ol id="present-board" class="board board--big"></ol>
+  </section>
+
+</main>
+
+<script src="https://www.youtube.com/iframe_api"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>
