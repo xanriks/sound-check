@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#10131a">
+<meta name="color-scheme" content="dark">
 <title>Check — Sound Check</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Karla:wght@400;600;700&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
 <style>
@@ -136,6 +138,13 @@ async function grab(path) {
       log("fail", "Firebase config is filled in", "Still contains the placeholder text.",
         "Copy the real config from Firebase → gear icon → Project settings → Your apps, and paste " +
         "it over the whole object. Part 3 of SETUP.md.");
+    } else if (/sound-check-1234|YOUR-PROJECT|example\.firebaseio/.test(raw)) {
+      log("fail", "Firebase config is filled in",
+        "This is the example config from the setup guide, not your own project.",
+        "<code>sound-check-1234</code> is a made-up project that doesn't exist, so Firebase will " +
+        "sit there retrying forever. Go to Firebase → gear icon → <b>Project settings</b> → scroll " +
+        "to <b>Your apps</b>, and copy the real <code>firebaseConfig</code>. Your project ID will " +
+        "have a random suffix like <code>sound-check-a4f92</code>.");
     } else if (!cfg.databaseURL) {
       log("fail", "Firebase config is filled in", "There's no <code>databaseURL</code> line.",
         "This happens when the web app was registered before the database existed. Open Realtime " +
@@ -158,9 +167,16 @@ async function grab(path) {
 
       const code = "ZZ" + Math.random().toString(36).slice(2, 5).toUpperCase();
       const probe = rtdb.ref(db, `rooms/${code}/meta`);
-      await rtdb.set(probe, { host: "diagnostic", status: "lobby", createdAt: Date.now() });
-      const back = await rtdb.get(probe);
-      await rtdb.remove(rtdb.ref(db, `rooms/${code}`));
+
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("TIMED_OUT")), 12000));
+
+      await Promise.race([
+        rtdb.set(probe, { host: "diagnostic", status: "lobby", createdAt: Date.now() }),
+        timeout
+      ]);
+      const back = await Promise.race([rtdb.get(probe), timeout]);
+      rtdb.remove(rtdb.ref(db, `rooms/${code}`)).catch(() => {});
 
       if (back.exists()) {
         log("pass", "Writing and reading a room", "Wrote to " + code + ", read it back, cleaned up.");
@@ -169,7 +185,18 @@ async function grab(path) {
       }
     } catch (err) {
       const m = String(err && err.message || err);
+      if (m === "handled") { /* already reported above */ }
+      else {
       const denied = /permission|PERMISSION_DENIED/i.test(m);
+      if (m === "TIMED_OUT") {
+        log("fail", "Writing and reading a room",
+          "No response after 12 seconds.",
+          "Firebase never errors when the database doesn't exist — it just retries silently. " +
+          "Almost always this means the <code>databaseURL</code> points somewhere real-looking " +
+          "but wrong. Check it character for character against the URL at the top of the " +
+          "<b>Data</b> tab in Realtime Database.");
+        throw new Error("handled");
+      }
       log("fail", "Writing and reading a room", esc(m),
         denied
           ? "The security rules are still in locked mode. In Firebase open <b>Realtime Database → " +
@@ -178,11 +205,13 @@ async function grab(path) {
           : "Two things cause this. Either you created <b>Cloud Firestore</b> instead of " +
             "<b>Realtime Database</b> — they're different products and this app only speaks the " +
             "second one — or the <code>databaseURL</code> points at a database that doesn't exist.");
+      }
     }
   }
 
   /* verdict */
-  document.getElementById("spin").remove();
+  const spin = document.getElementById("spin");
+  if (spin) spin.remove();
   document.getElementById("verdict").innerHTML = firstFailure
     ? `<div class="verdict"><h2>Start here</h2>
          <p>The first thing that failed is <b>${esc(firstFailure)}</b>. Fix that one and run this

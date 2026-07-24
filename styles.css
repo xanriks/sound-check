@@ -21,6 +21,14 @@
 
 *{ box-sizing:border-box; margin:0; padding:0; }
 
+/* The white bars in Safari come from <html>, not <body> — the browser paints
+   the overscroll and safe-area regions with the root background. */
+html{
+  background: var(--ink);
+  color-scheme: dark;
+  -webkit-text-size-adjust: 100%;
+}
+
 body{
   background:
     radial-gradient(120% 80% at 50% -10%, #1c2231 0%, var(--ink) 60%);
@@ -30,8 +38,19 @@ body{
   font-size: 16px;
   line-height: 1.5;
   min-height: 100vh;
-  padding: 1.5rem 1.1rem 4rem;
+  min-height: 100dvh;          /* doesn't jump when Safari's toolbar hides */
+  /* Clear the notch and the home indicator when installed to the home screen. */
+  padding:
+    calc(1.5rem + env(safe-area-inset-top))
+    calc(1.1rem + env(safe-area-inset-right))
+    calc(4rem  + env(safe-area-inset-bottom))
+    calc(1.1rem + env(safe-area-inset-left));
+  overscroll-behavior-y: none;
 }
+
+/* Selecting text mid-game is never what you meant. Inputs stay selectable. */
+.btn, .chip, .mark, .wave, .ticks{ -webkit-user-select: none; user-select: none; }
+.btn, .chip{ -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 
 #app{ max-width: 33rem; margin: 0 auto; }
 
@@ -333,7 +352,13 @@ body:has(#screen-present.is-active) #app{ max-width: 52rem; }
 
 /* ---------- phones ---------- */
 @media (max-width: 30rem){
-  body{ padding: 1rem .9rem 3rem; }
+  body{
+    padding:
+      calc(1rem + env(safe-area-inset-top))
+      calc(.9rem + env(safe-area-inset-right))
+      calc(3rem + env(safe-area-inset-bottom))
+      calc(.9rem + env(safe-area-inset-left));
+  }
   .panel{ padding: 1.1rem; }
   .wave{ height: 68px; }
   .marks .mark{ min-width: 0; font-size:.62rem; }
