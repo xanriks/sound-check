@@ -745,9 +745,12 @@ function blockStart(msg) {
     return blockStart("<b>Firebase wouldn't start up.</b> " + escapeHtml(initError.message));
   }
 
-  /* --- can we actually reach the database? --- */
+  /* --- can we actually reach the database? ---
+     Read a normal room path. Paths beginning with a dot (e.g. .info/...) are
+     rejected by Firebase's path validator with "Invalid token in path", so we
+     must not use one here. A miss on a non-existent room is a successful read. */
   try {
-    await get(ref(db, ".info/serverTimeOffset"));
+    await get(ref(db, "rooms/0000/meta"));
   } catch (err) {
     return blockStart(
       "<b>Couldn't reach your database.</b> Usually this means the security rules were " +
@@ -774,6 +777,16 @@ function blockStart(msg) {
 
 on("btn-create", "click", createRoom);
 on("btn-join", "click", joinRoom);
+// The code boxes act as a toggle for the keypad.
+function setKeypad(open) {
+  show($("keypad"), open);
+  $("code-slots").setAttribute("aria-expanded", open ? "true" : "false");
+  $("code-slots").classList.toggle("is-active", open);
+}
+$("code-slots").addEventListener("click", () => {
+  setKeypad($("keypad").hidden);   // tap toggles it
+});
+
 // Keypad drives the code field. Digits only, max 4.
 document.querySelectorAll("[data-key]").forEach(btn => {
   btn.addEventListener("click", () => {
