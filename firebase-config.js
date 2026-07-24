@@ -10,12 +10,12 @@
    ============================================================ */
 
 export const firebaseConfig = {
-  apiKey: "AIzaSy...",
-  authDomain: "sound-check-1234.firebaseapp.com",
-  databaseURL: "https://sound-check-1234-default-rtdb.firebaseio.com",
-  projectId: "sound-check-1234",
-  storageBucket: "sound-check-1234.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123:web:abc"
+  apiKey: "AIzaSyAKImNzspijo4lmI_lH7op3wqlY_P9munc",
+  authDomain: "sound-check-b79d5.firebaseapp.com",
+  databaseURL: "https://sound-check-b79d5-default-rtdb.firebaseio.com",
+  projectId: "sound-check-b79d5",
+  storageBucket: "sound-check-b79d5.firebasestorage.app",
+  messagingSenderId: "48750522107",
+  appId: "1:48750522107:web:b92f6835a1896b3eb14a5e"
 };
 
